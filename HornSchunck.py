@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import division
+from pyOpticalFlow import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.ndimage.filters import gaussian_filter
@@ -9,6 +10,12 @@ from scipy.ndimage import imread
 FILTER = 7
 
 def HS(im1, im2, alpha, Niter):
+    """
+    im1: image at t=0
+    im2: image at t=1
+    alpha: regularization constant
+    Niter: number of iteration
+    """
 
 	#set up initial velocities
     uInitial = np.zeros([im1.shape[0],im1.shape[1]])
@@ -36,28 +43,19 @@ def HS(im1, im2, alpha, Niter):
 
 	# Iteration to reduce error
     for i in range(Niter):
-		# Compute local averages of the flow vectors
-      #  uAvg = cv2.filter2D(u,-1,kernel)
-      #  vAvg = cv2.filter2D(v,-1,kernel)
-
+#%% Compute local averages of the flow vectors
         uAvg = filter2(u,kernel)
         vAvg = filter2(v,kernel)
+#%% common part of update step
+        der = (fx*uAvg + fy*vAvg + ft) / (alpha**2 + fx**2 + fy**2)
+#%% iterative step
+        u = uAvg - fx * der
+        v = vAvg - fy * der
 
-
-        uNumer = fx*(fx*uAvg + fy*vAvg + ft)
-        uDenom = alpha**2 + fx**2 + fy**2
-        u = uAvg - uNumer / uDenom
-
-		# print np.linalg.norm(u)
-
-        vNumer = fx*(fx*uAvg + fy*vAvg + ft)
-        vDenom = alpha**2 + fx**2 + fy**2
-        v = vAvg - vNumer / vDenom
-
-    return (u,v)
+    return u,v
 
 def computeDerivatives(im1, im2):
-	# build kernels for calculating derivatives
+#%% build kernels for calculating derivatives
     kernelX = np.array([[-1, 1],
                          [-1, 1]]) * .25 #kernel for computing dx
     kernelY = np.array([[-1,-1],
@@ -93,28 +91,36 @@ def compareGraphs():
 		# print i
 	# plt.arrow(POI[:,0,0],POI[:,0,1],0,-5)
 
-for i in range(1):
-    #upload images#
-    directory = 'box/box.'
-    # directory = 'office/office.'
-    # directory = 'rubic/rubic.'
-    # directory = 'sphere/sphere.'
-    fileName = directory + str(i) + '.bmp'
-    imgOld = imread(fileName).astype(float)
-    # imgOld = cv2.GaussianBlur(imgOld,(FILTER,FILTER),1)
-    imgOld = gaussian_filter(imgOld,3)
+def demo(stem):
+    for i in range(1):
+        #upload images#
+        directory = 'box/box.'
+        # directory = 'office/office.'
+        # directory = 'rubic/rubic.'
+        # directory = 'sphere/sphere.'
+        fileName = directory + str(i) + '.bmp'
+        imgOld = imread(fileName).astype(float)
+        # imgOld = cv2.GaussianBlur(imgOld,(FILTER,FILTER),1)
+        imgOld = gaussian_filter(imgOld,3)
 
-    i += 1
-    fileName = directory + str(i) + '.bmp'
-    imgNew = imread(fileName).astype(float)
-    # imgNew = cv2.GaussianBlur(imgNew,(FILTER,FILTER),1)
-    imgNew = gaussian_filter(imgNew,3)
-    #plt.imshow(imgNew)
-    #plt.title('new image')
+        i += 1
+        fileName = directory + str(i) + '.bmp'
+        imgNew = imread(fileName).astype(float)
+        # imgNew = cv2.GaussianBlur(imgNew,(FILTER,FILTER),1)
+        imgNew = gaussian_filter(imgNew,3)
+        #plt.imshow(imgNew)
+        #plt.title('new image')
+
+        [u,v] = HS(imgOld, imgNew, 1, 100)
+        compareGraphs()
 
 
+if __name__ == '__main__':
+    from argparse import ArgumentParser
+    p = ArgumentParser(description='Pure Python Horn Schunck Optical Flow')
+    p.add_argument('stem',help='path/stem of files to analyze')
+    p = p.parse_args()
 
-    [u,v] = HS(imgOld, imgNew, 1, 100)
-    compareGraphs()
+    demo(p.stem)
 
     plt.show()
