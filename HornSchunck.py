@@ -9,12 +9,13 @@ examples:
 
 """
 from __future__ import division
-from pyOpticalFlow import Path
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.filters import convolve as filter2
 from scipy.ndimage import imread
+#
+from pyOpticalFlow.io import getimgfiles
 
 FILTER = 7
 
@@ -99,28 +100,16 @@ def compareGraphs(u,v,Inew,scale=3):
     plt.draw(); plt.pause(0.01)
 
 def demo(stem):
-    stem = Path(stem).expanduser()
-    path = stem.parent
-    name = stem.name
-    exts = ['.ppm','.bmp','.png','.jpg']
-    for ext in exts:
-        flist = sorted(path.glob(name+'.*'+ext))
-        if flist:
-            break
-
-    if not flist:
-        raise FileNotFoundError('no files found with {}.*{}'.format(stem,ext))
-
-    print('analyzing {} files {}.*{}'.format(len(flist),stem,ext))
+    flist,ext = getimgfiles(stem)
 
     for i in range(len(flist)-1):
         fn1 = str(stem) +'.'+ str(i) + ext
         Iold = imread(fn1,flatten=True).astype(float)  #flatten=True is rgb2gray
-        Iold = gaussian_filter(Iold,3)
+        Iold = gaussian_filter(Iold,FILTER)
 
         fn2 = str(stem) + '.' + str(i+1) + ext
         Inew = imread(fn2,flatten=True).astype(float)
-        Inew = gaussian_filter(Inew,3)
+        Inew = gaussian_filter(Inew,FILTER)
         #plt.imshow(imgNew)
         #plt.title('new image')
 

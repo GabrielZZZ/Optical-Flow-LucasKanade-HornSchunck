@@ -1,15 +1,21 @@
-import cv2
+#!/usr/bin/env python
+from __future__ import division
 import numpy as np
 from matplotlib import pyplot as plt
-import time
+from scipy.ndimage import imread
+from scipy.ndimage.filters import gaussian_filter
+#
+from pyOpticalFlow.io import getimgfiles
 
-def compareGraphs(imgOld, imgNew, POI, V):
-	plt.imshow(imgNew,cmap = 'gray')
-	# plt.scatter(POI[:,0,1],POI[:,0,0])
-	for i in range(len(POI)):
-		plt.arrow(POI[i,0,1],POI[i,0,0],V[i,1]*1,V[i,0]*1, color = 'red')
-	# plt.arrow(POI[:,0,0],POI[:,0,1],0,-5)
-	plt.show()
+def compareGraphs(imgOld, imgNew, POI, V,scale=1.):
+    plt.imshow(imgNew,cmap = 'gray')
+    # plt.scatter(POI[:,0,1],POI[:,0,0])
+    for i in range(len(POI)):
+        plt.arrow(POI[i,0,1],POI[i,0,0],
+                    V[i,1]*scale, V[i,0]*scale,
+                    color = 'red')
+    # plt.arrow(POI[:,0,0],POI[:,0,1],0,-5)
+    plt.show()
 
 def buildA(img, centerX, centerY, kernelSize):
 	#build a kernel containing pixel intensities
@@ -77,7 +83,7 @@ def getPOI(xSize, ySize, kernelSize):
 	xStep = (xSize-mean)//kernelSize
 	yStep = (ySize-mean)//kernelSize
 	length = xStep*yStep
-	POI = np.zeros([length,1,2])
+	POI = np.zeros([length,1,2],int)
 	count = 0
 	for i in range(yStep):
 		for j in range(xStep):
@@ -89,65 +95,45 @@ def getPOI(xSize, ySize, kernelSize):
 		yPos += kernelSize
 	return POI
 
-def LK():
-	KERNEL = 5 #must be odd/
-	FILTER = 7
+def LucasKanade(stem,kernel=5,Nfilter=7):
+    flist,ext = getimgfiles(stem)
+    # priming read
+    Iold = imread(stem + '.0' + ext, flatten=True)
 
-	#get your first image
-	count = 0
-	# directory = 'box/box.'
-	# directory = 'office/office.'
-	# directory = 'rubic/rubic.'
-	directory = 'sphere/sphere.'
-	fileName = directory + str(count) + '.bmp'
-	imgOld = cv2.imread(fileName,0)
-	imgOld = cv2.GaussianBlur(imgOld,(FILTER,FILTER),1)
+    Y,X = Iold.shape
 
-	#evaluate the first frame's POI
-	POI = getPOI(200,200,KERNEL)
+    #evaluate the first frame's POI
+    POI = getPOI(X,Y,kernel)
 
-	#get the weights 
-	W = gaussianWeight(KERNEL)
+    #get the weights
+    W = gaussianWeight(kernel)
 
-	#loop until no pictures are available
-	while True:
-		#load the next image
-		count += 1
-		imgNew = cv2.imread(directory + str(count) + '.bmp',0)
-		imgNew = cv2.GaussianBlur(imgNew,(FILTER,FILTER),1)	
-		try:
-			if imgNew.any():
-				# print 'it exists'
-				pass
-		except:
-			# print 'it doesnt exist'
-			print 'count is',count
-			break
+    for i in range(1,len(flist)):
+        Inew = imread(stem + '.' + str(i) + ext, flatten=True)
+        Inew = gaussian_filter(Inew,Nfilter)
+#%% evaluate every POI
+        V = np.zeros([(POI.shape)[0],2])
+        for i in range(len(POI)):
+            A = buildA(Inew, POI[i][0][1], POI[i][0][0], kernel)
+            B = buildB(Inew, Iold, POI[i][0][1], POI[i][0][0], kernel)
 
-		#evaluate every POI
-		V = np.zeros([(POI.shape)[0],2])
-		for i in range(len(POI)):	
-			A = buildA(imgNew, POI[i][0][1], POI[i][0][0], KERNEL)
-			B = buildB(imgNew, imgOld, POI[i][0][1], POI[i][0][0], KERNEL)
+#%% solve for v
+            try:
+                Vpt = np.matrix((A.T).dot(W**2).dot(A)).I.dot(A.T).dot(W**2).dot(B)
+                V[i,0] = Vpt[0,0]
+                V[i,1] = Vpt[0,1]
+            except:
+                pass
 
-			#solve for v		
-			try:
-				Vpt = np.matrix((A.T).dot(W**2).dot(A)).I.dot(A.T).dot(W**2).dot(B)
-				# print Vpt
-				V[i,0] = Vpt[0,0]
-				V[i,1] = Vpt[0,1]
-			except:
-				pass
+        compareGraphs(Iold, Inew, POI, V)
 
-		#all done, evaluate the image
-		compareGraphs(imgOld,imgNew, POI, V)
+        Iold = Inew
 
-		#if we don't want to loop several times
-		if count == 1:
-			break
 
-		#update lists
-		imgOld = imgNew
-		POI = getPOI(200,200,KERNEL)
+if __name__ == '__main__':
+    from argparse import ArgumentParser
+    p = ArgumentParser(description='Pure Python Horn Schunck Optical Flow')
+    p.add_argument('stem',help='path/stem of files to analyze')
+    p = p.parse_args()
 
-LK()
+    LucasKanade(p.stem)
