@@ -1,4 +1,13 @@
 #!/usr/bin/env python
+"""
+examples:
+
+./HornSchunck.py data/box/box
+./HornSchunck.py data/office/office
+./HornSchunck.py data/rubic/rubic
+./HornSchunck.py data/sphere/sphere
+
+"""
 from __future__ import division
 from pyOpticalFlow import Path
 import numpy as np
@@ -70,7 +79,7 @@ def computeDerivatives(im1, im2):
 
     return fx,fy,ft
 
-def compareGraphs(u,v,Inew):
+def compareGraphs(u,v,Inew,scale=3):
     """
     makes quiver
     """
@@ -82,39 +91,42 @@ def compareGraphs(u,v,Inew):
             for j in range(len(u)):
                 if j%5 == 0:
                     ax.arrow(j,i,
-                             v[i,j]*1, u[i,j]*1,
+                             v[i,j]*scale, u[i,j]*scale,
                              color = 'red')
 
 	# plt.arrow(POI[:,0,0],POI[:,0,1],0,-5)
+
+    plt.draw(); plt.pause(0.01)
 
 def demo(stem):
     stem = Path(stem).expanduser()
     path = stem.parent
     name = stem.name
-    exts = ['.bmp','.png','.jpg']
-    for e in exts:
-        flist = sorted(path.glob(name+'.*'+e))
+    exts = ['.ppm','.bmp','.png','.jpg']
+    for ext in exts:
+        flist = sorted(path.glob(name+'.*'+ext))
         if flist:
             break
 
     if not flist:
-        raise FileNotFoundError('no files found with {}.*{}'.format(stem,e))
+        raise FileNotFoundError('no files found with {}.*{}'.format(stem,ext))
 
-    print('analyzing {} files {}.*{}'.format(len(flist),stem,e))
+    print('analyzing {} files {}.*{}'.format(len(flist),stem,ext))
 
     for i in range(len(flist)-1):
-        fn1 = str(stem) +'.'+ str(i) + '.bmp'
-        Iold = imread(fn1).astype(float)
+        fn1 = str(stem) +'.'+ str(i) + ext
+        Iold = imread(fn1,flatten=True).astype(float)  #flatten=True is rgb2gray
         Iold = gaussian_filter(Iold,3)
 
-        fn2 = str(stem) + '.' + str(i+1) + '.bmp'
-        Inew = imread(fn2).astype(float)
+        fn2 = str(stem) + '.' + str(i+1) + ext
+        Inew = imread(fn2,flatten=True).astype(float)
         Inew = gaussian_filter(Inew,3)
         #plt.imshow(imgNew)
         #plt.title('new image')
 
         [U,V] = HS(Iold, Inew, 1, 100)
         compareGraphs(U,V,Inew)
+
 
     return U,V
 
