@@ -1,7 +1,7 @@
 =====================================
 Optical Flow: LucasKanade HornSchunck
 =====================================
-Pure Python implementation of optical flow estimation using:
+Python implementation of optical flow estimation using only the Scipy stack for:
 
 * Lucas Kanade method
 * Horn Schunck
