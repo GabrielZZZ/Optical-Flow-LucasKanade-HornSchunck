@@ -22,8 +22,8 @@ def HS(im1, im2, alpha, Niter):
     vInitial = np.zeros([im1.shape[0],im1.shape[1]])
 
 	# Set initial value for the flow vectors
-    u = uInitial
-    v = vInitial
+    U = uInitial
+    V = vInitial
 
 	# Estimate derivatives
     [fx, fy, ft] = computeDerivatives(im1, im2)
@@ -35,84 +35,88 @@ def HS(im1, im2, alpha, Niter):
         fg.colorbar(h,ax=a)
 
 	# Averaging kernel
-    kernel=np.array([[1/12., 1/6, 1/12],
+    kernel=np.array([[1/12, 1/6, 1/12],
                       [1/6,    0, 1/6],
-                      [1/12, 1/6, 1/12]])
+                      [1/12, 1/6, 1/12]],float)
 
     print(fx[100,100],fy[100,100],ft[100,100])
 
 	# Iteration to reduce error
-    for i in range(Niter):
+    for _ in range(Niter):
 #%% Compute local averages of the flow vectors
-        uAvg = filter2(u,kernel)
-        vAvg = filter2(v,kernel)
+        uAvg = filter2(U,kernel)
+        vAvg = filter2(V,kernel)
 #%% common part of update step
         der = (fx*uAvg + fy*vAvg + ft) / (alpha**2 + fx**2 + fy**2)
 #%% iterative step
-        u = uAvg - fx * der
-        v = vAvg - fy * der
+        U = uAvg - fx * der
+        V = vAvg - fy * der
 
-    return u,v
+    return U,V
 
 def computeDerivatives(im1, im2):
 #%% build kernels for calculating derivatives
     kernelX = np.array([[-1, 1],
-                         [-1, 1]]) * .25 #kernel for computing dx
+                         [-1, 1]]) * .25 #kernel for computing d/dx
     kernelY = np.array([[-1,-1],
-                         [ 1, 1]]) * .25 #kernel for computing dy
+                         [ 1, 1]]) * .25 #kernel for computing d/dy
     kernelT = np.ones((2,2))*.25
-
-	#apply the filter to every pixel using OpenCV's convolution function
-#	fx = cv2.filter2D(im1,-1,kernelX) + cv2.filter2D(im2,-1,kernelX)
-#	fy = cv2.filter2D(im1,-1,kernelY) + cv2.filter2D(im2,-1,kernelY)
 
     fx = filter2(im1,kernelX) + filter2(im2,kernelX)
     fy = filter2(im1,kernelY) + filter2(im2,kernelY)
 
-     #ft = im2 - im1
- 	#ft = cv2.filter2D(im2,-1,kernelT) + cv2.filter2D(im1,-1,-kernelT)
-    ft = filter2(im2,kernelT) + filter2(im1,-kernelT)
-    return (fx,fy,ft)
+    #ft = im2 - im1
+    ft = filter2(im1,kernelT) + filter2(im2,-kernelT)
 
-def compareGraphs():
+    return fx,fy,ft
+
+def compareGraphs(u,v,Inew):
     """
     makes quiver
     """
     ax = plt.figure().gca()
-    ax.imshow(imgNew,cmap = 'gray')
+    ax.imshow(Inew,cmap = 'gray')
     # plt.scatter(POI[:,0,1],POI[:,0,0])
     for i in range(len(u)):
         if i%5 ==0:
             for j in range(len(u)):
                 if j%5 == 0:
-                    ax.arrow(j,i,v[i,j]*5e-4,u[i,j]*5e-4, color = 'red')
+                    ax.arrow(j,i,
+                             v[i,j]*1, u[i,j]*1,
+                             color = 'red')
 
-    print('done')
-		# print i
 	# plt.arrow(POI[:,0,0],POI[:,0,1],0,-5)
 
 def demo(stem):
-    for i in range(1):
-        #upload images#
-        directory = 'box/box.'
-        # directory = 'office/office.'
-        # directory = 'rubic/rubic.'
-        # directory = 'sphere/sphere.'
-        fileName = directory + str(i) + '.bmp'
-        imgOld = imread(fileName).astype(float)
-        # imgOld = cv2.GaussianBlur(imgOld,(FILTER,FILTER),1)
-        imgOld = gaussian_filter(imgOld,3)
+    stem = Path(stem).expanduser()
+    path = stem.parent
+    name = stem.name
+    exts = ['.bmp','.png','.jpg']
+    for e in exts:
+        flist = sorted(path.glob(name+'.*'+e))
+        if flist:
+            break
 
-        i += 1
-        fileName = directory + str(i) + '.bmp'
-        imgNew = imread(fileName).astype(float)
-        # imgNew = cv2.GaussianBlur(imgNew,(FILTER,FILTER),1)
-        imgNew = gaussian_filter(imgNew,3)
+    if not flist:
+        raise FileNotFoundError('no files found with {}.*{}'.format(stem,e))
+
+    print('analyzing {} files {}.*{}'.format(len(flist),stem,e))
+
+    for i in range(len(flist)-1):
+        fn1 = str(stem) +'.'+ str(i) + '.bmp'
+        Iold = imread(fn1).astype(float)
+        Iold = gaussian_filter(Iold,3)
+
+        fn2 = str(stem) + '.' + str(i+1) + '.bmp'
+        Inew = imread(fn2).astype(float)
+        Inew = gaussian_filter(Inew,3)
         #plt.imshow(imgNew)
         #plt.title('new image')
 
-        [u,v] = HS(imgOld, imgNew, 1, 100)
-        compareGraphs()
+        [U,V] = HS(Iold, Inew, 1, 100)
+        compareGraphs(U,V,Inew)
+
+    return U,V
 
 
 if __name__ == '__main__':
@@ -121,6 +125,6 @@ if __name__ == '__main__':
     p.add_argument('stem',help='path/stem of files to analyze')
     p = p.parse_args()
 
-    demo(p.stem)
+    U,V = demo(p.stem)
 
     plt.show()
