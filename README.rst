@@ -20,16 +20,19 @@ Box
 Office
 ------
 ::
+
   python HornSchunck.py data/office/office
 
 Rubic
 ------
 ::
+
   python HornSchunck.py data/rubic/rubic
 
-Rubic
+Sphere
 ------
 ::
+
   python HornSchunck.py data/sphere/sphere
 
 Comparision with Matlab Computer Vision toolbox
