@@ -15,7 +15,7 @@ from scipy.ndimage.filters import gaussian_filter
 from scipy.ndimage.filters import convolve as filter2
 from scipy.ndimage import imread
 #
-from pyOpticalFlow.io import getimgfiles
+from pyOpticalFlow import getimgfiles
 
 FILTER = 7
 

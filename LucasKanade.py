@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from scipy.ndimage import imread
 from scipy.ndimage.filters import gaussian_filter
 #
-from pyOpticalFlow.io import getimgfiles
+from pyOpticalFlow import getimgfiles
 
 def compareGraphs(imgOld, imgNew, POI, V,scale=1.):
     plt.imshow(imgNew,cmap = 'gray')
