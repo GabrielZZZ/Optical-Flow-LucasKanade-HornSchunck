@@ -18,6 +18,7 @@ from scipy.ndimage import imread
 from pyOpticalFlow import getimgfiles
 
 FILTER = 7
+QUIVER = 5
 
 def HS(im1, im2, alpha, Niter):
     """
@@ -87,13 +88,9 @@ def compareGraphs(u,v,Inew,scale=3):
     ax = plt.figure().gca()
     ax.imshow(Inew,cmap = 'gray')
     # plt.scatter(POI[:,0,1],POI[:,0,0])
-    for i in range(len(u)):
-        if i%5 ==0:
-            for j in range(len(u)):
-                if j%5 == 0:
-                    ax.arrow(j,i,
-                             v[i,j]*scale, u[i,j]*scale,
-                             color = 'red')
+    for i in range(0,len(u),QUIVER):
+        for j in range(0,len(v),QUIVER):
+            ax.arrow(j,i, v[i,j]*scale, u[i,j]*scale, color='red')
 
 	# plt.arrow(POI[:,0,0],POI[:,0,1],0,-5)
 
