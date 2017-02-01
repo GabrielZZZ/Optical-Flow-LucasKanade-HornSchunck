@@ -1,12 +1,4 @@
-try:
-    from pathlib import Path
-    Path().expanduser()
-except (ImportError,AttributeError):
-    from pathlib2 import Path
-#
-import six
-if six.PY2:
-    FileNotFoundError = OSError
+from pathlib import Path
 
 def getimgfiles(stem):
     stem = Path(stem).expanduser()
