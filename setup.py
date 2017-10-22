@@ -1,11 +1,18 @@
 #!/usr/bin/env python
-from setuptools import setup
+req=['nose','scipy','numpy','matplotlib']
+
+import pip
 try:
     import conda.cli
-    conda.cli.main('install','--file','requirements.txt')
+    conda.cli.main('install',*req)
 except Exception as e:
-    print(e)
+    pip.main(['install'] + req)
+
+# %%
+from setuptools import setup
 
 setup(name='pyOpticalFlow',
       packages=['pyOpticalFlow'],
+      author='Michael Hirsch',
+      install_requires=req,
 	  )
